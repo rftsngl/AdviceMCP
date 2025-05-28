@@ -19,12 +19,12 @@ def tools_list():
         "result": {
             "tools": [
                 {
-                    "name": "get_advice",
                     "description": "Get a random advice string",
-                    "inputSchema": {"type": "object", "properties": {}},
+                    "name": "get_advice",
+                    "inputSchema": { "type": "object", "properties": {} },
                     "returns": {
-                        "type": "string",
-                        "description": "Random advice"
+                        "description": "Random advice",
+                        "type": "string"
                     }
                 }
             ]
@@ -123,11 +123,11 @@ def mcp_entrypoint():
 
     # resources.list ve resources/list
     elif method in ["resources.list", "resources/list"]:
-        return jsonify({"jsonrpc": "2.0", "result": [], "id": req_id})
+        return jsonify({"jsonrpc": "2.0", "result": {"resources": []}, "id": req_id})
 
     # prompts.list ve prompts/list
     elif method in ["prompts.list", "prompts/list"]:
-        return jsonify({"jsonrpc": "2.0", "result": [], "id": req_id})
+        return jsonify({"jsonrpc": "2.0", "result": {"prompts": []}, "id": req_id})
 
     else:
         return jsonify({"jsonrpc": "2.0", "error": {"code": -32601, "message": "Method not found"}, "id": req_id})
