@@ -54,7 +54,7 @@ def tools_call():
 @app.route('/mcp', methods=['POST'])
 def mcp_entrypoint():
     req = request.get_json()
-    print("GELEN MCP İSTEĞİ:", req, flush=True)  # <-- log ekle
+    print("GELEN MCP İSTEĞİ:", req, flush=True)
     if not req or "method" not in req:
         return jsonify({"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": None})
 
@@ -62,7 +62,11 @@ def mcp_entrypoint():
     req_id = req.get("id")
     params = req.get("params", {})
 
-    if method == "tools.list":
+    if method == "initialize":
+        # MCP initialize methoduna basit bir cevap dön
+        return jsonify({"jsonrpc": "2.0", "id": req_id, "result": {"message": "initialized"}})
+
+    elif method == "tools.list":
         result = [
             {
                 "name": "get_advice",
