@@ -1,3 +1,4 @@
-name: project-mcp
-description: Basit Flask REST API
+name: Advice MCP
+description: Returns random advice using adviceslip.com as an MCP server
+framework: flask
 entrypoint: python app.py
