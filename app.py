@@ -20,8 +20,12 @@ def tools_list():
             "tools": [
                 {
                     "name": "get_advice",
-                    "description": "Get a random advice",
-                    "inputSchema": {"type": "object", "properties": {}}
+                    "description": "Get a random advice string",
+                    "inputSchema": {"type": "object", "properties": {}},
+                    "returns": {
+                        "type": "string",
+                        "description": "Random advice"
+                    }
                 }
             ]
         }
@@ -100,9 +104,22 @@ def mcp_entrypoint():
             return jsonify({"jsonrpc": "2.0", "error": {"code": -32601, "message": "Unknown tool"}, "id": req_id})
         try:
             advice = get_advice()
-            return jsonify({"jsonrpc": "2.0", "result": advice, "id": req_id})
+            return jsonify({
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "result": {
+                    "content": [
+                        {"type": "text", "text": advice}
+                    ],
+                    "isError": False
+                }
+            })
         except Exception as e:
-            return jsonify({"jsonrpc": "2.0", "error": {"code": -32000, "message": str(e)}, "id": req_id})
+            return jsonify({
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "error": {"code": -32000, "message": str(e)}
+            })
 
     # resources.list ve resources/list
     elif method in ["resources.list", "resources/list"]:
