@@ -79,17 +79,19 @@ def mcp_entrypoint():
 
     # tools.list ve tools/list
     elif method in ["tools.list", "tools/list"]:
-        result = [
-            {
-                "name": "get_advice",
-                "description": "Get a random advice string",
-                "parameters": {},
-                "returns": {
-                    "type": "string",
-                    "description": "Random advice"
+        result = {
+            "tools": [
+                {
+                    "name": "get_advice",
+                    "description": "Get a random advice string",
+                    "parameters": {},
+                    "returns": {
+                        "type": "string",
+                        "description": "Random advice"
+                    }
                 }
-            }
-        ]
+            ]
+        }
         return jsonify({"jsonrpc": "2.0", "result": result, "id": req_id})
 
     # tools.call ve tools/call
