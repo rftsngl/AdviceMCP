@@ -1,4 +1,4 @@
-name: Advice MCP
-description: Returns random advice using adviceslip.com as an MCP server
-framework: flask
-entrypoint: python app.py
+version: 1
+startCommand:
+  type: http
+  command: ["python", "app.py"]
