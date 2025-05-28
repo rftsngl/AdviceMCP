@@ -84,7 +84,7 @@ def mcp_entrypoint():
                 {
                     "name": "get_advice",
                     "description": "Get a random advice string",
-                    "parameters": {},
+                    "inputSchema": {"type": "object", "properties": {}},
                     "returns": {
                         "type": "string",
                         "description": "Random advice"
