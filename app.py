@@ -63,8 +63,18 @@ def mcp_entrypoint():
     params = req.get("params", {})
 
     if method == "initialize":
-        # MCP initialize methoduna basit bir cevap dön
-        return jsonify({"jsonrpc": "2.0", "id": req_id, "result": {"message": "initialized"}})
+        return jsonify({
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "result": {
+                "protocolVersion": "2024-11-05",
+                "capabilities": {},
+                "serverInfo": {
+                    "name": "project-mcp",
+                    "version": "1.0.0"
+                }
+            }
+        })
 
     elif method == "tools.list":
         result = [
