@@ -54,6 +54,7 @@ def tools_call():
 @app.route('/mcp', methods=['POST'])
 def mcp_entrypoint():
     req = request.get_json()
+    print("GELEN MCP İSTEĞİ:", req, flush=True)  # <-- log ekle
     if not req or "method" not in req:
         return jsonify({"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": None})
 
@@ -92,5 +93,5 @@ def index():
     return jsonify({"message": "Advice MCP is live!"})
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 8000))
+    port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
