@@ -62,7 +62,8 @@ def mcp_entrypoint():
     req_id = req.get("id")
     params = req.get("params", {})
 
-    if method == "initialize":
+    # initialize
+    if method in ["initialize"]:
         return jsonify({
             "jsonrpc": "2.0",
             "id": req_id,
@@ -76,7 +77,8 @@ def mcp_entrypoint():
             }
         })
 
-    elif method == "tools.list":
+    # tools.list ve tools/list
+    elif method in ["tools.list", "tools/list"]:
         result = [
             {
                 "name": "get_advice",
@@ -90,7 +92,8 @@ def mcp_entrypoint():
         ]
         return jsonify({"jsonrpc": "2.0", "result": result, "id": req_id})
 
-    elif method == "tools.call":
+    # tools.call ve tools/call
+    elif method in ["tools.call", "tools/call"]:
         if params.get("name") != "get_advice":
             return jsonify({"jsonrpc": "2.0", "error": {"code": -32601, "message": "Unknown tool"}, "id": req_id})
         try:
@@ -98,6 +101,14 @@ def mcp_entrypoint():
             return jsonify({"jsonrpc": "2.0", "result": advice, "id": req_id})
         except Exception as e:
             return jsonify({"jsonrpc": "2.0", "error": {"code": -32000, "message": str(e)}, "id": req_id})
+
+    # resources.list ve resources/list
+    elif method in ["resources.list", "resources/list"]:
+        return jsonify({"jsonrpc": "2.0", "result": [], "id": req_id})
+
+    # prompts.list ve prompts/list
+    elif method in ["prompts.list", "prompts/list"]:
+        return jsonify({"jsonrpc": "2.0", "result": [], "id": req_id})
 
     else:
         return jsonify({"jsonrpc": "2.0", "error": {"code": -32601, "message": "Method not found"}, "id": req_id})
