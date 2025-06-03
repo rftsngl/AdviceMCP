@@ -19,7 +19,9 @@ def handle_request(request):
             "id": req_id,
             "result": {
                 "protocolVersion": "2024-11-05",
-                "capabilities": {},
+                "capabilities": {
+                    "tools": {}
+                },
                 "serverInfo": {
                     "name": "project-mcp",
                     "version": "1.0.0"
@@ -80,7 +82,8 @@ def main():
             except Exception:
                 error_response = {
                     "jsonrpc": "2.0",
-                    "error": {"code": -32700, "message": "Parse error"}
+                    "error": {"code": -32700, "message": "Parse error"},
+                    "id": None
                 }
                 print(json.dumps(error_response), flush=True)
 
