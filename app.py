@@ -108,6 +108,12 @@ def health_check():
     """Return server health status."""
     return jsonify({"status": "MCP server is running", "version": "1.0.0"})
 
+# Smithery için root endpoint'e MCP handler ekleyelim
+@app.route('/', methods=['POST'])
+def root_mcp_handler():
+    """Handle MCP protocol requests at root."""
+    return mcp_handler()
+
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8000))
     app.run(host="0.0.0.0", port=port, debug=False)
