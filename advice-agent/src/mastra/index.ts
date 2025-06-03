@@ -13,4 +13,12 @@ if (import.meta.url === process.argv[1] || import.meta.url === `file://${process
   // Eğer doğrudan bir başlatma fonksiyonu yoksa, bu bloğu kaldırabilirsiniz.
   console.log("Mastra instance created:", mastra);
 }
-//3a9b4fe3-d407-414c-a38a-39412c82a576
+
+// filepath: mastra.config.js
+export default {
+  storage: {
+    type: 'memory', // Geliştirme için 'memory' kullanabilirsiniz
+    options: {}
+  },
+  // diğer yapılandırmalar...
+}

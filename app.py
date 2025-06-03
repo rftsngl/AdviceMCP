@@ -82,7 +82,7 @@ def mcp_entrypoint():
         })
 
     # tools.list ve tools/list
-    elif method in ["tools.list", "tools/list"]:
+    elif method in ["tools.list", "tools/list", "toolsList"]:  # örnek
         result = {
             "tools": [
                 {
