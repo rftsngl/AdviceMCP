@@ -1,6 +1,5 @@
 """Flask MCP server that provides advice functionality."""
 import os
-
 from flask import Flask, request, jsonify
 import requests
 
@@ -19,14 +18,16 @@ def get_advice():
     except requests.RequestException:
         return "Failed to fetch advice"
 
-# MCP endpoint'ini GET, POST, DELETE destekleyecek şekilde güncelleyelim
 @app.route('/mcp', methods=['GET', 'POST', 'DELETE'])
 def mcp_handler():
     """Handle MCP protocol requests."""
     
-    # GET isteği için tools/list method'unu simüle et
+    # GET request - Smithery tool discovery
     if request.method == 'GET':
-        # Smithery GET isteğinde de JSON-RPC format'ı bekliyor olabilir
+        # Parse configuration from query parameters if any
+        config_params = request.args.to_dict()
+        
+        # Return tools list directly (for Smithery discovery)
         return jsonify({
             "jsonrpc": "2.0",
             "id": 1,
@@ -34,117 +35,118 @@ def mcp_handler():
                 "tools": [{
                     "name": "get_advice",
                     "description": "Get a random advice string",
-                    "inputSchema": {"type": "object", "properties": {}}
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {},
+                        "required": []
+                    }
                 }]
             }
         })
     
-    # DELETE isteği için boş response
+    # DELETE request
     if request.method == 'DELETE':
         return jsonify({"jsonrpc": "2.0", "id": 1, "result": {}})
     
-    # POST isteği için mevcut MCP protokolü
-    req = request.get_json()
-    if not req:
-        # GET parametrelerini kontrol et, eğer configuration varsa tools/list döndür
-        return jsonify({
-            "jsonrpc": "2.0",
-            "id": 1,
-            "result": {
-                "tools": [{
-                    "name": "get_advice", 
-                    "description": "Get a random advice string",
-                    "inputSchema": {"type": "object", "properties": {}}
-                }]
-            }
-        })
+    # POST request - Standard MCP JSON-RPC
+    try:
+        req = request.get_json()
+        if not req:
+            return jsonify({
+                "jsonrpc": "2.0", 
+                "error": {"code": -32600, "message": "Invalid Request"}, 
+                "id": None
+            })
 
-    method = req.get("method")
-    req_id = req.get("id")
-    params = req.get("params", {})
+        method = req.get("method")
+        req_id = req.get("id", 1)
+        params = req.get("params", {})
 
-    if method == "initialize":
-        return jsonify({
-            "jsonrpc": "2.0",
-            "id": req_id,
-            "result": {
-                "protocolVersion": "2024-11-05",
-                "capabilities": {"tools": {}},
-                "serverInfo": {"name": "project-mcp", "version": "1.0.0"}
-            }
-        })
-
-    elif method == "tools/list":
-        return jsonify({
-            "jsonrpc": "2.0",
-            "id": req_id,
-            "result": {
-                "tools": [{
-                    "name": "get_advice",
-                    "description": "Get a random advice string",
-                    "inputSchema": {"type": "object", "properties": {}}
-                }]
-            }
-        })
-
-    elif method == "tools/call":
-        if params.get("name") != "get_advice":
+        # Initialize method
+        if method == "initialize":
             return jsonify({
                 "jsonrpc": "2.0",
                 "id": req_id,
-                "error": {"code": -32601, "message": "Unknown tool"}
+                "result": {
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {
+                        "tools": {}
+                    },
+                    "serverInfo": {
+                        "name": "project-mcp",
+                        "version": "1.0.0"
+                    }
+                }
             })
-        
-        advice = get_advice()
+
+        # List tools method
+        elif method == "tools/list":
+            return jsonify({
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "result": {
+                    "tools": [{
+                        "name": "get_advice",
+                        "description": "Get a random advice string",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {},
+                            "required": []
+                        }
+                    }]
+                }
+            })
+
+        # Call tool method
+        elif method == "tools/call":
+            tool_name = params.get("name")
+            if tool_name != "get_advice":
+                return jsonify({
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "error": {
+                        "code": -32602,
+                        "message": f"Unknown tool: {tool_name}"
+                    }
+                })
+            
+            advice = get_advice()
+            return jsonify({
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "result": {
+                    "content": [{
+                        "type": "text",
+                        "text": advice
+                    }]
+                }
+            })
+
+        # Method not found
+        else:
+            return jsonify({
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "error": {
+                    "code": -32601,
+                    "message": f"Method not found: {method}"
+                }
+            })
+
+    except Exception as e:
         return jsonify({
             "jsonrpc": "2.0",
-            "id": req_id,
-            "result": {
-                "content": [{"type": "text", "text": advice}]
+            "id": req.get("id", 1) if 'req' in locals() else 1,
+            "error": {
+                "code": -32603,
+                "message": "Internal error"
             }
         })
-
-    else:
-        return jsonify({
-            "jsonrpc": "2.0",
-            "id": req_id,
-            "error": {"code": -32601, "message": "Method not found"}
-        })
-
-# Smithery için direkt endpoint'ler ekleyelim
-@app.route('/tools/list', methods=['GET', 'POST'])
-def tools_list():
-    """Return list of available tools."""
-    return jsonify({
-        "tools": [{
-            "name": "get_advice",
-            "description": "Get a random advice string",
-            "inputSchema": {"type": "object", "properties": {}}
-        }]
-    })
-
-@app.route('/tools/call', methods=['POST'])
-def tools_call():
-    """Execute tool calls."""
-    req = request.get_json() or {}
-    if req.get("name") != "get_advice":
-        return jsonify({"error": "Unknown tool"}), 400
-    
-    advice = get_advice()
-    return jsonify({
-        "content": [{"type": "text", "text": advice}]
-    })
 
 @app.route('/', methods=['GET'])
 def health_check():
     """Return server health status."""
     return jsonify({"status": "MCP server is running", "version": "1.0.0"})
-
-# Smithery için root endpoint'e MCP handler ekleyelim
-@app.route('/', methods=['POST'])
-def root_mcp_handler():
-    """Handle MCP protocol requests at root."""
-    return mcp_handler()
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8000))
