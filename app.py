@@ -1,8 +1,6 @@
-from flask import Flask, request, jsonify
+import json
+import sys
 import requests
-import os
-
-app = Flask(__name__)
 
 def get_advice():
     resp = requests.get("https://api.adviceslip.com/advice", timeout=5)
@@ -10,65 +8,13 @@ def get_advice():
     data = resp.json()
     return data.get('slip', {}).get('advice')
 
-@app.route('/tools/list', methods=['POST'])
-def tools_list():
-    req = request.get_json()
-    return jsonify({
-        "jsonrpc": "2.0",
-        "id": req.get("id"),
-        "result": {
-            "tools": [
-                {
-                    "description": "Get a random advice string",
-                    "name": "get_advice",
-                    "inputSchema": { "type": "object", "properties": {} },
-                    "returns": {
-                        "description": "Random advice",
-                        "type": "string"
-                    }
-                }
-            ]
-        }
-    })
-
-@app.route('/tools/call', methods=['POST'])
-def tools_call():
-    req = request.get_json()
-    if not req or req.get("params", {}).get("name") != "get_advice":
-        return jsonify({"jsonrpc": "2.0", "id": req.get("id"), "error": {"code": -32601, "message": "Unknown tool"}})
-    try:
-        advice = get_advice()
-        return jsonify({
-            "jsonrpc": "2.0",
-            "id": req.get("id"),
-            "result": {
-                "content": [
-                    {"type": "text", "text": advice}
-                ],
-                "isError": False
-            }
-        })
-    except Exception as e:
-        return jsonify({
-            "jsonrpc": "2.0",
-            "id": req.get("id"),
-            "error": {"code": -32000, "message": str(e)}
-        })
-
-@app.route('/mcp', methods=['POST'])
-def mcp_entrypoint():
-    req = request.get_json()
-    print("GELEN MCP İSTEĞİ:", req, flush=True)
-    if not req or "method" not in req:
-        return jsonify({"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": None})
-
-    method = req["method"]
-    req_id = req.get("id")
-    params = req.get("params", {})
-
-    # initialize
-    if method in ["initialize"]:
-        return jsonify({
+def handle_request(request):
+    method = request.get("method")
+    req_id = request.get("id")
+    params = request.get("params", {})
+    
+    if method == "initialize":
+        return {
             "jsonrpc": "2.0",
             "id": req_id,
             "result": {
@@ -79,63 +25,64 @@ def mcp_entrypoint():
                     "version": "1.0.0"
                 }
             }
-        })
-
-    # tools.list ve tools/list
-    elif method in ["tools.list", "tools/list", "toolsList"]:  # örnek
-        result = {
-            "tools": [
-                {
+        }
+    
+    elif method == "tools/list":
+        return {
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "result": {
+                "tools": [{
                     "name": "get_advice",
                     "description": "Get a random advice string",
-                    "inputSchema": {"type": "object", "properties": {}},
-                    "returns": {
-                        "type": "string",
-                        "description": "Random advice"
-                    }
-                }
-            ]
+                    "inputSchema": {"type": "object", "properties": {}}
+                }]
+            }
         }
-        return jsonify({"jsonrpc": "2.0", "result": result, "id": req_id})
-
-    # tools.call ve tools/call
-    elif method in ["tools.call", "tools/call"]:
+    
+    elif method == "tools/call":
         if params.get("name") != "get_advice":
-            return jsonify({"jsonrpc": "2.0", "error": {"code": -32601, "message": "Unknown tool"}, "id": req_id})
+            return {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "error": {"code": -32601, "message": "Unknown tool"}
+            }
         try:
             advice = get_advice()
-            return jsonify({
+            return {
                 "jsonrpc": "2.0",
                 "id": req_id,
                 "result": {
-                    "content": [
-                        {"type": "text", "text": advice}
-                    ],
-                    "isError": False
+                    "content": [{"type": "text", "text": advice}]
                 }
-            })
-        except Exception as e:
-            return jsonify({
+            }
+        except Exception:
+            return {
                 "jsonrpc": "2.0",
                 "id": req_id,
-                "error": {"code": -32000, "message": str(e)}
-            })
-
-    # resources.list ve resources/list
-    elif method in ["resources.list", "resources/list"]:
-        return jsonify({"jsonrpc": "2.0", "result": {"resources": []}, "id": req_id})
-
-    # prompts.list ve prompts/list
-    elif method in ["prompts.list", "prompts/list"]:
-        return jsonify({"jsonrpc": "2.0", "result": {"prompts": []}, "id": req_id})
-
+                "error": {"code": -32000, "message": "An error occurred"}
+            }
+    
     else:
-        return jsonify({"jsonrpc": "2.0", "error": {"code": -32601, "message": "Method not found"}, "id": req_id})
+        return {
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "error": {"code": -32601, "message": "Method not found"}
+        }
 
-@app.route('/', methods=['GET'])
-def index():
-    return jsonify({"message": "Advice MCP is live!"})
+def main():
+    for line in sys.stdin:
+        if line.strip():
+            try:
+                request = json.loads(line)
+                response = handle_request(request)
+                print(json.dumps(response), flush=True)
+            except Exception:
+                error_response = {
+                    "jsonrpc": "2.0",
+                    "error": {"code": -32700, "message": "Parse error"}
+                }
+                print(json.dumps(error_response), flush=True)
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    main()

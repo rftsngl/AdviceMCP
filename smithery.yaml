@@ -1,4 +1,4 @@
 version: 1
 startCommand:
-  type: http
+  type: stdio
   command: ["python", "app.py"]
