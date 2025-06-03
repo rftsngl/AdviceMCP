@@ -19,10 +19,26 @@ def get_advice():
     except requests.RequestException:
         return "Failed to fetch advice"
 
-# Ana MCP endpoint (mevcut)
-@app.route('/mcp', methods=['POST'])
+# MCP endpoint'ini GET, POST, DELETE destekleyecek şekilde güncelleyelim
+@app.route('/mcp', methods=['GET', 'POST', 'DELETE'])
 def mcp_handler():
     """Handle MCP protocol requests."""
+    
+    # GET isteği için tools listesi döndür (Tool Discovery için)
+    if request.method == 'GET':
+        return jsonify({
+            "tools": [{
+                "name": "get_advice",
+                "description": "Get a random advice string",
+                "inputSchema": {"type": "object", "properties": {}}
+            }]
+        })
+    
+    # DELETE isteği için boş response
+    if request.method == 'DELETE':
+        return jsonify({"status": "ok"})
+    
+    # POST isteği için mevcut MCP protokolü
     req = request.get_json()
     if not req:
         return jsonify({"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": None})
