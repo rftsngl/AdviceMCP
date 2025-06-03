@@ -24,24 +24,40 @@ def get_advice():
 def mcp_handler():
     """Handle MCP protocol requests."""
     
-    # GET isteği için tools listesi döndür (Tool Discovery için)
+    # GET isteği için tools/list method'unu simüle et
     if request.method == 'GET':
+        # Smithery GET isteğinde de JSON-RPC format'ı bekliyor olabilir
         return jsonify({
-            "tools": [{
-                "name": "get_advice",
-                "description": "Get a random advice string",
-                "inputSchema": {"type": "object", "properties": {}}
-            }]
+            "jsonrpc": "2.0",
+            "id": 1,
+            "result": {
+                "tools": [{
+                    "name": "get_advice",
+                    "description": "Get a random advice string",
+                    "inputSchema": {"type": "object", "properties": {}}
+                }]
+            }
         })
     
     # DELETE isteği için boş response
     if request.method == 'DELETE':
-        return jsonify({"status": "ok"})
+        return jsonify({"jsonrpc": "2.0", "id": 1, "result": {}})
     
     # POST isteği için mevcut MCP protokolü
     req = request.get_json()
     if not req:
-        return jsonify({"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": None})
+        # GET parametrelerini kontrol et, eğer configuration varsa tools/list döndür
+        return jsonify({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "result": {
+                "tools": [{
+                    "name": "get_advice", 
+                    "description": "Get a random advice string",
+                    "inputSchema": {"type": "object", "properties": {}}
+                }]
+            }
+        })
 
     method = req.get("method")
     req_id = req.get("id")
