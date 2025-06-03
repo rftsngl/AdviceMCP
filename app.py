@@ -1,10 +1,13 @@
+"""Flask MCP server that provides advice functionality."""
+import os
+
 from flask import Flask, request, jsonify
 import requests
-import os
 
 app = Flask(__name__)
 
 def get_advice():
+    """Fetch a random advice from external API."""
     try:
         resp = requests.get("https://api.adviceslip.com/advice", timeout=5)
         resp.raise_for_status()
@@ -13,11 +16,13 @@ def get_advice():
         if not advice:
             return "No advice available"
         return advice
-    except Exception:
+    except requests.RequestException:
         return "Failed to fetch advice"
 
+# Ana MCP endpoint (mevcut)
 @app.route('/mcp', methods=['POST'])
 def mcp_handler():
+    """Handle MCP protocol requests."""
     req = request.get_json()
     if not req:
         return jsonify({"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}, "id": None})
@@ -26,7 +31,6 @@ def mcp_handler():
     req_id = req.get("id")
     params = req.get("params", {})
 
-    # Initialize
     if method == "initialize":
         return jsonify({
             "jsonrpc": "2.0",
@@ -38,7 +42,6 @@ def mcp_handler():
             }
         })
 
-    # Tools list
     elif method == "tools/list":
         return jsonify({
             "jsonrpc": "2.0",
@@ -52,7 +55,6 @@ def mcp_handler():
             }
         })
 
-    # Tools call
     elif method == "tools/call":
         if params.get("name") != "get_advice":
             return jsonify({
@@ -70,7 +72,6 @@ def mcp_handler():
             }
         })
 
-    # Unknown method
     else:
         return jsonify({
             "jsonrpc": "2.0",
@@ -78,8 +79,33 @@ def mcp_handler():
             "error": {"code": -32601, "message": "Method not found"}
         })
 
+# Smithery için direkt endpoint'ler ekleyelim
+@app.route('/tools/list', methods=['GET', 'POST'])
+def tools_list():
+    """Return list of available tools."""
+    return jsonify({
+        "tools": [{
+            "name": "get_advice",
+            "description": "Get a random advice string",
+            "inputSchema": {"type": "object", "properties": {}}
+        }]
+    })
+
+@app.route('/tools/call', methods=['POST'])
+def tools_call():
+    """Execute tool calls."""
+    req = request.get_json() or {}
+    if req.get("name") != "get_advice":
+        return jsonify({"error": "Unknown tool"}), 400
+    
+    advice = get_advice()
+    return jsonify({
+        "content": [{"type": "text", "text": advice}]
+    })
+
 @app.route('/', methods=['GET'])
 def health_check():
+    """Return server health status."""
     return jsonify({"status": "MCP server is running", "version": "1.0.0"})
 
 if __name__ == '__main__':
