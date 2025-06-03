@@ -21,13 +21,7 @@ def get_advice():
 @app.route('/mcp', methods=['GET', 'POST', 'DELETE'])
 def mcp_handler():
     """Handle MCP protocol requests."""
-    
-    # GET request - Smithery tool discovery
     if request.method == 'GET':
-        # Parse configuration from query parameters if any
-        config_params = request.args.to_dict()
-        
-        # Return tools list directly (for Smithery discovery)
         return jsonify({
             "jsonrpc": "2.0",
             "id": 1,
@@ -43,12 +37,8 @@ def mcp_handler():
                 }]
             }
         })
-    
-    # DELETE request
     if request.method == 'DELETE':
         return jsonify({"jsonrpc": "2.0", "id": 1, "result": {}})
-    
-    # POST request - Standard MCP JSON-RPC
     try:
         req = request.get_json()
         if not req:
@@ -61,6 +51,14 @@ def mcp_handler():
         method = req.get("method")
         req_id = req.get("id", 1)
         params = req.get("params", {})
+
+        # Ping method (MCP protocol utility)
+        if method == "ping":
+            return jsonify({
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "result": {}
+            })
 
         # Initialize method
         if method == "initialize":
@@ -109,7 +107,6 @@ def mcp_handler():
                         "message": f"Unknown tool: {tool_name}"
                     }
                 })
-            
             advice = get_advice()
             return jsonify({
                 "jsonrpc": "2.0",
@@ -133,10 +130,10 @@ def mcp_handler():
                 }
             })
 
-    except Exception as e:
+    except (ValueError, KeyError, AttributeError):
         return jsonify({
             "jsonrpc": "2.0",
-            "id": req.get("id", 1) if 'req' in locals() else 1,
+            "id": 1,
             "error": {
                 "code": -32603,
                 "message": "Internal error"
