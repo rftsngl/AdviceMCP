@@ -1,20 +1,34 @@
 import json
 import sys
-import requests
+import logging
+
+# Logging'i stderr'e yönlendir (stdio ile karışmaması için)
+logging.basicConfig(level=logging.DEBUG, stream=sys.stderr)
+logger = logging.getLogger(__name__)
 
 def get_advice():
-    resp = requests.get("https://api.adviceslip.com/advice", timeout=5)
-    resp.raise_for_status()
-    data = resp.json()
-    return data.get('slip', {}).get('advice')
+    import requests
+    try:
+        resp = requests.get("https://api.adviceslip.com/advice", timeout=5)
+        resp.raise_for_status()
+        data = resp.json()
+        advice = data.get('slip', {}).get('advice')
+        if not advice:
+            raise ValueError("No advice received from API")
+        return advice
+    except Exception as e:
+        logger.error(f"Failed to get advice: {e}")
+        raise RuntimeError(f"Failed to fetch advice: {e}")
 
 def handle_request(request):
+    logger.debug(f"Handling request: {request}")
+    
     method = request.get("method")
     req_id = request.get("id")
     params = request.get("params", {})
     
     if method == "initialize":
-        return {
+        response = {
             "jsonrpc": "2.0",
             "id": req_id,
             "result": {
@@ -28,9 +42,11 @@ def handle_request(request):
                 }
             }
         }
+        logger.debug(f"Initialize response: {response}")
+        return response
     
     elif method == "tools/list":
-        return {
+        response = {
             "jsonrpc": "2.0",
             "id": req_id,
             "result": {
@@ -41,6 +57,8 @@ def handle_request(request):
                 }]
             }
         }
+        logger.debug(f"Tools list response: {response}")
+        return response
     
     elif method == "tools/call":
         if params.get("name") != "get_advice":
@@ -58,11 +76,11 @@ def handle_request(request):
                     "content": [{"type": "text", "text": advice}]
                 }
             }
-        except Exception:
+        except Exception as e:
             return {
                 "jsonrpc": "2.0",
                 "id": req_id,
-                "error": {"code": -32000, "message": "An error occurred"}
+                "error": {"code": -32000, "message": str(e)}
             }
     
     else:
@@ -73,19 +91,39 @@ def handle_request(request):
         }
 
 def main():
-    for line in sys.stdin:
-        if line.strip():
+    logger.info("MCP server starting...")
+    
+    # sys.stdin'i line buffered yap
+    sys.stdin.reconfigure(line_buffering=True)
+    sys.stdout.reconfigure(line_buffering=True)
+    
+    try:
+        for line in sys.stdin:
+            line = line.strip()
+            if not line:
+                continue
+                
+            logger.debug(f"Received line: {line}")
+            
             try:
                 request = json.loads(line)
                 response = handle_request(request)
-                print(json.dumps(response), flush=True)
-            except Exception:
+                response_json = json.dumps(response)
+                print(response_json, flush=True)
+                logger.debug(f"Sent response: {response_json}")
+                
+            except json.JSONDecodeError as e:
+                logger.error(f"JSON decode error: {e}")
                 error_response = {
                     "jsonrpc": "2.0",
                     "error": {"code": -32700, "message": "Parse error"},
                     "id": None
                 }
                 print(json.dumps(error_response), flush=True)
+                
+    except Exception as e:
+        logger.error(f"Fatal error: {e}")
+        raise
 
 if __name__ == '__main__':
     main()
