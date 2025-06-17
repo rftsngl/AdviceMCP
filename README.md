@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/rftsngl-advicemcp-badge.png)](https://mseep.ai/app/rftsngl-advicemcp)
+
 # project-mcp
 [![smithery badge](https://smithery.ai/badge/@rftsngl/project-mcp)](https://smithery.ai/server/@rftsngl/project-mcp)
 Bu proje, rastgele tavsiyeler sunan bir MCP (Model Context Protocol) sunucusudur.
